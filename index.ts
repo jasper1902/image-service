@@ -21,13 +21,17 @@ app.use("/api/images", imageRoute);
 app.use("/public", express.static(path.join(__dirname, "src", "public")));
 
 app.get("/public/images/:imageName", (req, res) => {
-  const imagePath = path.join(
-    __dirname,
-    "src",
-    "public",
-    "images",
-    req.params.imageName
-  );
+  const imagePath =
+    process.env.NODE_ENV === "production"
+      ? path.join(
+          __dirname,
+          "..",
+          "src",
+          "public",
+          "images",
+          req.params.imageName
+        )
+      : path.join(__dirname, "src", "public", "images", req.params.imageName);
 
   res.sendFile(imagePath, (error) => {
     if (error) {

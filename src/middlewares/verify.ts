@@ -2,12 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
 export interface UserPayload extends JwtPayload {
-  uaername: string;
+  id: string;
   role: string;
 }
 
 export interface AdminAuthRequest extends Request {
-  role: "admin";
+  userId: string;
+  userRole: "admin";
 }
 
 const verifyAdmin = (req: Request, res: Response, next: NextFunction) => {
@@ -31,6 +32,11 @@ const verifyAdmin = (req: Request, res: Response, next: NextFunction) => {
         .status(403)
         .json({ message: "You don't have permission to access" });
     }
+
+    const extendedReq = req as AdminAuthRequest;
+    extendedReq.userId = decoded.user.id as string;
+    extendedReq.userRole = decoded.user.role as "admin";
+
     next();
   } catch (error) {
     console.error(error);

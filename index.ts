@@ -5,12 +5,14 @@ import * as dotenv from "dotenv";
 import connectDB from "./src/configs/db";
 import userRoute from "./src/routes/user";
 import imageRoute from "./src/routes/image";
+import cors from "cors";
 dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 const app = express();
 connectDB(process.env.MONGO_URI as string);
 
+app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.raw({ type: "application/octet-stream", limit: "50mb" }));
 app.use(morgan("dev"));

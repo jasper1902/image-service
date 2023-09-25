@@ -11,6 +11,9 @@ const imageDirectory = (filename?: string) => {
     process.env.NODE_ENV === "production"
       ? path.join(__dirname, "..", "..", "..", "src", "public", "images")
       : path.join(__dirname, "..", "public", "images");
+  if (!fs.existsSync(basePath)) {
+    fs.mkdirSync(basePath, { recursive: true });
+  }
   const imagePath = filename ? path.join(basePath, filename) : basePath;
   return imagePath;
 };

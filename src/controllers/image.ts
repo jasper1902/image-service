@@ -1,12 +1,16 @@
 import { Request, Response } from "express";
 import path from "path";
 import fs from "fs";
-import { v4 as uuidv4 } from "uuid";
-import sharp from "sharp";
 import Photo from "../models/Photo";
 import { AdminAuthRequest } from "../middlewares/verify";
+import {
+  generateUniqueFilename,
+  getImageMetadata,
+  sanitizeFilename,
+  writeImageToFile,
+} from "../utils/image";
 
-const imageDirectory = (filename?: string) => {
+export const imageDirectory = (filename?: string) => {
   const basePath =
     process.env.NODE_ENV === "production"
       ? path.join(__dirname, "..", "..", "..", "src", "public", "images")
@@ -70,25 +74,27 @@ export const saveImage = async (req: Request, res: Response) => {
       return res.status(400).send("No filename specified");
     }
 
+    const imageData = JSON.parse(req.body.toString("utf8"));
+    const imageBuffer = Buffer.from(imageData.file.buffer.data);
+
+    const sanitizedFilename = sanitizeFilename(filename);
+    const uniqueFilename = generateUniqueFilename(sanitizedFilename);
+
+    writeImageToFile(uniqueFilename, imageBuffer);
+
+    const imageInfo = await getImageMetadata(uniqueFilename);
     const newReq = req as unknown as AdminAuthRequest;
-
-    const uniqueSuffix = uuidv4();
-    const sanitizedOriginalName = filename.replace(/[^a-zA-Z0-9]/g, "_");
-    const uniqueFilename = `${sanitizedOriginalName}-${uniqueSuffix}.jpg`;
-
-    fs.writeFileSync(imageDirectory(uniqueFilename), req.body);
-    const imageInfo = await sharp(
-      `${imageDirectory()}/${uniqueFilename}`
-    ).metadata();
-    const photo = await Photo.create({
+    const savedPhoto = await Photo.create({
       url: `/public/images/${uniqueFilename}`,
       width: imageInfo.width,
       height: imageInfo.height,
       filename: uniqueFilename,
-      alt: req.body.alt,
+      alt: imageData.alt,
       uploader: newReq.userId,
+      tagList: imageData.tagList,
     });
-    res.status(200).json({ photo: await photo.toPhotoResponse() });
+
+    res.status(200).json({ photo: await savedPhoto.toPhotoResponse() });
   } catch (error) {
     console.error("Error saving image:", error);
     res.status(500).send("Error saving image.");
